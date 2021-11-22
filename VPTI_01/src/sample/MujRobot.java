@@ -191,43 +191,32 @@ public class MujRobot extends AdvancedRobot {
 		}
 	}
 
-	public void calculateQ() {
-		if (q_map.containsKey(currentState) == false || q_map.containsKey(lastState) == false) {
-			ArrayList<Double> tmp = new ArrayList<Double>();
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			tmp.add(0.0);
-			q_map.put(lastState, tmp);
-		}
+	 public void calculateQ() {
+	        if (q_map.containsKey(lastState) == false) {
+	            ArrayList<Double> tmp = new ArrayList<Double>();
+	            tmp.add(0.0);
+	            tmp.add(0.0);
+	            tmp.add(0.0);
+	            q_map.put(lastState, tmp);
+	        }
+	        if (q_map.containsKey(currentState) == false) {
+	            ArrayList<Double> tmp = new ArrayList<Double>();
+	            tmp.add(0.0);
+	            tmp.add(0.0);
+	            tmp.add(0.0);
+	            q_map.put(currentState, tmp);
+	        }
 
-		else {
-			double q = q_map.get(lastState).get(lastAction);
-			double maxQ = Collections.max(q_map.get(currentState));
-			double newQ = updateQ(q, maxQ);
-			reward = 0;
-			ArrayList<Double> last_q_values = q_map.get(lastState);
-			last_q_values.set(lastAction, newQ);
-			q_map.put(lastState, last_q_values);
-		}
-	}
+	            double q = q_map.get(lastState).get(lastAction);
+	            double maxQ = Collections.max(q_map.get(currentState));
+	            double newQ = updateQ(q, maxQ);
+	            reward = 0;
+	            ArrayList<Double> last_q_values = q_map.get(lastState);
+	            last_q_values.set(lastAction, newQ);
+	            q_map.put(lastState, last_q_values);
+	        
+	        
+	    }
 
 	public double updateQ(double q, double maxQ) {
 		return (1 - alpha) * q + alpha * (reward + discount * maxQ);
