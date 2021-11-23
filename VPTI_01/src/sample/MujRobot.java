@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,7 +30,7 @@ public class MujRobot extends AdvancedRobot {
 
 	private static HashMap<String, ArrayList<Double>> q_map = new HashMap<String, ArrayList<Double>>();
 	private static Double epsilon = 1.0;
-	private static Double decay_rate = 0.05;
+	private static Double decay_rate = 0.1;
 	private static Double minEpsilon = 0.01;
 	private static Double alpha = 0.3;
 	private static Double discount = 0.9;
@@ -41,17 +43,21 @@ public class MujRobot extends AdvancedRobot {
 	private static String dist;
 	private static String currentState = "";
 	private static String lastState = "";
-
+	public static int mapOfActionSize;
 	// private Integer currentAction = 0;
 	private static Integer lastAction = 0;
 	public Random randomNumber = new Random();
-	private static boolean useMap = true;
+	private static boolean useMap = false;
 
+	private static HashMap<Integer, RobotFunction> mapOfActions = new HashMap<Integer, RobotFunction>();
+	
+	
 	public void run() {
 		if (useMap) {
 			loadQMap(); // nacteni tabulky
-			epsilon = 0.01;
+			epsilon = 0.1;
 		}
+		initializeMapOfActions();
 		while (true) {
 			runMyTank();
 
@@ -64,10 +70,10 @@ public class MujRobot extends AdvancedRobot {
 	public void runMyTank() {
 		int action = 0;
 		double trueRandomNumber = randomNumber.nextDouble();
-
+		boolean calcMap = true;
 		// vyber nahodne akce s ohledem na pravdepodobnost epsilon
 		if (epsilon > trueRandomNumber) {
-			action = randomNumber.nextInt(8);
+			action = randomNumber.nextInt(mapOfActionSize);
 		}
 		// vyber akce z Q mapy
 		else if (q_map.containsKey(currentState)) {
@@ -76,7 +82,9 @@ public class MujRobot extends AdvancedRobot {
 			Double forIndex = Collections.max(q_values);
 			action = q_map.get(currentState).indexOf(forIndex);
 		}
-		actions(action);
+		
+		actions(this.mapOfActions.get(action));
+		lastAction = action;
 		lastState = currentState;
 
 		// tady je reprezentace stavu
@@ -88,62 +96,68 @@ public class MujRobot extends AdvancedRobot {
 
 	}
 
-	public void actions(int action) {
+	
+	public void initializeMapOfActions() {
+		List<String> actionNames = Arrays.asList(
+						"setTurnRight", "setTurnLeft",
+						"setAhead", "setBack",
+						"setFire",
+						"setTurnGunLeft","setTurnGunRight"
+						);
+		int mapVals= 0;
+		for(String name: actionNames){
+			if(name == "setFire") {
+				for (int i = 0; i<100; i++) {
+					mapVals++;
+					this.mapOfActions.put(mapVals, new RobotFunction(i, name));
+				}
+			}
+			else if(name == "setAhead" || name == "setBack") {
+				for (int j = 1; j<getBattleFieldHeight() || j<getBattleFieldWidth() ; j+=10 ) {
+					mapVals++;
+					this.mapOfActions.put(mapVals, new RobotFunction(j, name));
+				}
+				
+				
+			}
+			else {
+				for (int j = 1; j<360 ; j++ ) {
+					mapVals++;
+					this.mapOfActions.put(mapVals, new RobotFunction(j, name));
+				}
+			}
+		}
+		mapOfActionSize = this.mapOfActions.size();
+	}
+	
+	
+	public void actions(RobotFunction robotFunction) {
 
-		switch (action) {
+		switch (robotFunction.getFunctionName()) {
 
-		case 0:
-			setAhead(100);
-			turnRight(40);
-			lastAction = 0;
+		case "setAhead":
+			setAhead(robotFunction.getParameter());
 			break;
-		case 1:
-			setAhead(100);
-			turnRight(-40);
-			lastAction = 1;
+		case "setBack":
+			setBack(robotFunction.getParameter());
 			break;
-		case 2:
-			setAhead(-100);
-			turnRight(40);
-			lastAction = 2;
+		case "setTurnRight":
+			setTurnRight(robotFunction.getParameter());
 			break;
-		case 3:
-			setAhead(100);
-			turnRight(-40);
-			lastAction = 3;
+		case "setTurnLeft":
+			setTurnLeft(robotFunction.getParameter());
 			break;
-		case 4:
-			// turnRadarRight(120);
-			setTurnRight(angle + 10);
-			setAhead(100);
-			lastAction = 4;
+		case "setFire":
+			setFire(robotFunction.getParameter());
 			break;
-		case 5:
-			setTurnRight(angle);
-			setAhead(100);
-			fire(2);
-			lastAction = 5;
+		case "setTurnGunLeft":
+			setTurnGunLeft(robotFunction.getParameter());
 			break;
-		case 6:
-			// turnGunRight(-20);
-			// turnRadarRight(-20);
-			doNothing();
-			lastAction = 6;
+		case "setTurnGunRight":
+			setTurnGunRight(robotFunction.getParameter());
 			break;
-
-		/*
-		 * case 0: fire(1); lastAction = 0; break; case 1: ahead(100); lastAction = 1;
-		 * break; case 2: back(100); lastAction = 2; break; case 3: turnLeft(30);
-		 * lastAction = 3; break; case 4: turnRight(30); lastAction = 4; break; case 5:
-		 * turnLeft(45); lastAction = 5; break; case 6: turnRight(45); lastAction = 6;
-		 * break; case 7: turnGunLeft(30); lastAction = 7; break; case 8:
-		 * turnGunRight(30); lastAction = 8; break; case 9: turnGunLeft(45); lastAction
-		 * = 9; break; case 10: turnGunRight(45); lastAction = 10; break; case 11:
-		 * turnRadarLeft(30); lastAction = 11; break; case 12: turnRadarRight(30);
-		 * lastAction = 12; break; case 13: turnRadarLeft(45); lastAction = 13; break;
-		 * case 14: turnRadarRight(45); lastAction = 14; break;
-		 */
 		default:
+			doNothing();
 			break;
 		}
 		execute();
@@ -198,26 +212,22 @@ public class MujRobot extends AdvancedRobot {
         	createStateMap(currentState);
         }
 
-            double q = q_map.get(lastState).get(lastAction);
-            double maxQ = Collections.max(q_map.get(currentState));
-            double newQ = updateQ(q, maxQ);
-            reward = 0;
-            ArrayList<Double> last_q_values = q_map.get(lastState);
-            last_q_values.set(lastAction, newQ);
-            q_map.put(lastState, last_q_values);
+        double q = q_map.get(lastState).get(lastAction);
+        double maxQ = Collections.max(q_map.get(currentState));
+        double newQ = updateQ(q, maxQ);
+        reward = 0;
+        ArrayList<Double> last_q_values = q_map.get(lastState);
+        last_q_values.set(lastAction, newQ);
+        q_map.put(lastState, last_q_values);
         
         
     }
 
 	public void createStateMap(String state) {
 		ArrayList<Double> tmp = new ArrayList<Double>();
-		tmp.add(0.0);
-		tmp.add(0.0);
-		tmp.add(0.0);
-		tmp.add(0.0);
-		tmp.add(0.0);
-		tmp.add(0.0);
-		tmp.add(0.0);
+		for(int i=0; i<this.mapOfActionSize;i++) {
+			tmp.add(0.0);
+		}
 		q_map.put(state, tmp);
 	}
 
@@ -258,42 +268,40 @@ public class MujRobot extends AdvancedRobot {
 	}
 
 	public void onBulletHit(BulletHitEvent e) {
-		reward = reward + 80;
-
-	}
-
-	public void onHitRobot(HitRobotEvent e) {
-		reward = reward - 50;
-		runMyTank();
-	}
-
-	public void onBulletMissed(BulletMissedEvent e) {
-		reward = reward - 50;
-
-	}
-
-	public void onDeath(DeathEvent e) {
-		reward = reward - 50;
-
-	}
-
-	public void onWin(WinEvent e) {
 		reward = reward + 100;
 
 	}
 
+	public void onHitRobot(HitRobotEvent e) {
+		reward = reward - 100;
+		runMyTank();
+	}
+
+	public void onBulletMissed(BulletMissedEvent e) {
+		reward = reward - 40;
+
+	}
+
+	public void onDeath(DeathEvent e) {
+		reward = reward - 150;
+
+	}
+
+	public void onWin(WinEvent e) {
+		reward = reward + 150;
+
+	}
+
 	public void onHitWall(HitWallEvent e) {
-		reward = reward - 50;
+		reward = reward - 100;
 		setAhead(getVelocity() * -1);
 		runMyTank();
 	}
 
 	public void onScannedRobot(ScannedRobotEvent e) {
-		reward = 1;
+		reward += 10;
+		
 		// angle = Integer.toString((int) Math.round((e.getBearing() + 180) / 10));
-		angle = e.getBearing();
-		dist = Integer.toString((int) Math.round(e.getDistance() / 10));
-		fire(3);
 		scan();
 		runMyTank();
 	}
