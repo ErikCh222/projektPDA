@@ -1,5 +1,17 @@
 package sample;
 
+/*nahradit aby kdyz se otaci neotacel scanerem*/
+/*boolean promenna do onEvent˘ pokud fire - nechat dolÌtnout kulku a pak udÏlat dalöÌ akci */
+
+
+
+
+
+
+
+
+// calculate Q nevolat za strelbu 2x, aù to nep¯ipÌöe jin˝m akcÌm 
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -12,6 +24,7 @@ import java.util.*;
 
 import robocode.AdvancedRobot;
 import robocode.BattleEndedEvent;
+import robocode.BulletHitBulletEvent;
 import robocode.BulletHitEvent;
 import robocode.BulletMissedEvent;
 import robocode.DeathEvent;
@@ -27,47 +40,58 @@ import robocode.WinEvent;
 public class MujRobot extends AdvancedRobot {
 
 	private static HashMap<String, ArrayList<Double>> q_map = new HashMap<String, ArrayList<Double>>();
-	private static Double epsilon = 1.0;
-	private static Double decay_rate = 0.05;
+	private static HashMap<String, ArrayList<Double>> q_map_strelba = new HashMap<String, ArrayList<Double>>();
+	private static Double epsilon = 1.0; ////zpatky zmenit !!!!!!!!!!!!!!!!
+	private static Double decay_rate = 0.01;
 	private static Double minEpsilon = 0.01;
-	private static Double alpha = 0.3;
+	private static Double alpha = 0.1;
 	private static Double discount = 0.9;
 
 	private static Integer rounds = 0;
 
 	private static Integer reward = 0;
-
-	private static Double angle = 0.0;
-	private static String dist;
+	private static Integer reward_strelba = 0;
+	
+	private static boolean useMap = true;
+	private static String angle = "";
+	private static String dist = "";
+	private static String vel = "";
 	private static String currentState = "";
+	private static String currentState_strelba = "";
+	private static String frozenState = "";
 	private static String lastState = "";
+	private static String lastState_strelba = "";
+	private static Integer lastAction_strelba = 0;
+	public static String onHitBull="";
 
 	// private Integer currentAction = 0;
 	private static Integer lastAction = 0;
 	public Random randomNumber = new Random();
-	private static boolean useMap = true;
-
 	public void run() {
-		if (useMap) {
-			loadQMap(); // nacteni tabulky
-			epsilon = 0.01;
-		}
+		 if (useMap) {
+	            loadQMap(); // nacteni tabulky
+	            loadQMap_strelba();
+	            epsilon = 0.01;
+	            useMap = false;
+	        }
+	//	loadQMap(); // nacteni tabulky
+		
+		
 		while (true) {
 			runMyTank();
-
 		}
 
 	}
 
 	// Definice akci
-
+	
 	public void runMyTank() {
 		int action = 0;
 		double trueRandomNumber = randomNumber.nextDouble();
 
 		// vyber nahodne akce s ohledem na pravdepodobnost epsilon
 		if (epsilon > trueRandomNumber) {
-			action = randomNumber.nextInt(8);
+			action = randomNumber.nextInt(4);
 		}
 		// vyber akce z Q mapy
 		else if (q_map.containsKey(currentState)) {
@@ -77,112 +101,148 @@ public class MujRobot extends AdvancedRobot {
 			action = q_map.get(currentState).indexOf(forIndex);
 		}
 		actions(action);
+		
 		lastState = currentState;
 
 		// tady je reprezentace stavu
 		currentState = getState();
-		if (!useMap) {
-			calculateQ();
-		}
-		dist = "0";
-
+		calculateQ();
 	}
+	
+	
+	public void Tank_strelba() {
+		int action = 0;
+		double trueRandomNumber = randomNumber.nextDouble();
 
+		// vyber nahodne akce s ohledem na pravdepodobnost epsilon
+		if (epsilon > trueRandomNumber) {
+			action = randomNumber.nextInt(3);
+		}
+		// vyber akce z Q mapy
+		else if (q_map_strelba.containsKey(currentState_strelba)) {
+			ArrayList<Double> q_values = new ArrayList<Double>();
+			q_values = q_map_strelba.get(currentState_strelba);
+			Double forIndex = Collections.max(q_values);
+			action = q_map_strelba.get(currentState_strelba).indexOf(forIndex);
+		}
+		actions_strelba(action);
+		
+		lastState_strelba = currentState_strelba;
+
+		// tady je reprezentace stavu
+		currentState_strelba = getState_strelba();
+		calculateQ_strelba();
+	}
+	
 	public void actions(int action) {
 
 		switch (action) {
-
+		
 		case 0:
+			if (onHitBull=="1") {
+				reward = 0;
+			}
 			setAhead(100);
-			turnRight(40);
+			setTurnLeft(30);
+			setAdjustGunForRobotTurn(true);
+			setTurnGunLeft(7);
+			execute();
 			lastAction = 0;
+			onHitBull = "0";
 			break;
 		case 1:
-			setAhead(100);
-			turnRight(-40);
-			lastAction = 1;
+			if (onHitBull=="1") {
+				reward = 0;
+			}
+			setBack(100);
+			setTurnLeft(30);
+			setAdjustGunForRobotTurn(true);
+			setTurnGunLeft(7);	
+			execute();
+			lastAction = 1;	
+			onHitBull = "0";
 			break;
 		case 2:
-			setAhead(-100);
-			turnRight(40);
+			if (onHitBull=="1") {
+				reward = 0;
+			}
+			setAhead(100);
+			setTurnLeft(30);
+			setAdjustGunForRobotTurn(true);
+			setTurnGunLeft(7);
+			execute();
 			lastAction = 2;
+			onHitBull = "0";
 			break;
 		case 3:
-			setAhead(100);
-			turnRight(-40);
+			if (onHitBull=="1") {
+				reward = 0;
+			}
+			setBack(100);
+			setTurnRight(30);
+			setAdjustGunForRobotTurn(true);
+			setTurnGunLeft(7);
+			execute();
 			lastAction = 3;
-			break;
-		case 4:
-			// turnRadarRight(120);
-			setTurnRight(angle + 10);
-			setAhead(100);
-			lastAction = 4;
-			break;
-		case 5:
-			setTurnRight(angle);
-			setAhead(100);
-			fire(2);
-			lastAction = 5;
-			break;
-		case 6:
-			// turnGunRight(-20);
-			// turnRadarRight(-20);
-			doNothing();
-			lastAction = 6;
+			onHitBull = "0";
 			break;
 
-		/*
-		 * case 0: fire(1); lastAction = 0; break; case 1: ahead(100); lastAction = 1;
-		 * break; case 2: back(100); lastAction = 2; break; case 3: turnLeft(30);
-		 * lastAction = 3; break; case 4: turnRight(30); lastAction = 4; break; case 5:
-		 * turnLeft(45); lastAction = 5; break; case 6: turnRight(45); lastAction = 6;
-		 * break; case 7: turnGunLeft(30); lastAction = 7; break; case 8:
-		 * turnGunRight(30); lastAction = 8; break; case 9: turnGunLeft(45); lastAction
-		 * = 9; break; case 10: turnGunRight(45); lastAction = 10; break; case 11:
-		 * turnRadarLeft(30); lastAction = 11; break; case 12: turnRadarRight(30);
-		 * lastAction = 12; break; case 13: turnRadarLeft(45); lastAction = 13; break;
-		 * case 14: turnRadarRight(45); lastAction = 14; break;
-		 */
 		default:
 			break;
 		}
+	}
+	
+	public void actions_strelba(int action) {
+
 		execute();
+		if (getGunHeat() == 0 && Math.abs(getGunTurnRemaining()) < 10)
+		switch (action) {
+		
+		case 2:
+			turnGunRight(3);
+			lastAction_strelba = 2;
+			break;
+		case 1:
+			turnGunLeft(3);
+			lastAction_strelba = 1;			
+			break;
+		case 0:
+			setFire(3);
+			lastAction_strelba = 0;
+			frozenState=getState_strelba();
+			break;
+
+		default:
+			break;
+		}
+		
 	}
 
 	// Ziskani sektoru
+	public String getState_strelba() {
+
+		String state =  dist + "-" + angle + "*" + vel;
+		
+		return state;
+	}
+	
 	public String getState() {
-		int energy;
-		/*
-		 * double X = getX(); double Y = getY(); int coordX = (int) Math.floor(X / 30);
-		 * int coordY = (int) Math.floor(Y / 30); System.out.println((coordY * 20) +
-		 * coordX);
-		 */
-		if (getEnergy() < 25) {
-			energy = 0;
-		} else if (getEnergy() > 25 && getEnergy() < 50) {
-			energy = 1;
-		} else if (getEnergy() > 50 && getEnergy() < 75) {
-			energy = 2;
-		} else {
-			energy = 3;
-		}
-
-		int heat;
-		if (getGunHeat() > 0) {
-			heat = 0;
-		} else {
-			heat = 1;
-		}
-
-		return energy + "-" + heat + "-" + dist;
-		// + "-"+angle;
+		int cordX = (int)Math.round(getX()/100);
+		int cordY = (int)Math.round(getY()/100);
+		String sector = Integer.toString(cordY*6+cordX);
+		String heading = Integer.toString((int)Math.round(getHeading()/36));
+		
+		
+		String state =  sector + "-" + heading + "-" + onHitBull;
+		
+		return state;
 	}
 
 	// Zvyseni poctu kol, postupny prechod na rozhodovani dle q mapy
 	public void onRoundEnded(RoundEndedEvent e) {
 		rounds++;
-		if (rounds > 50) {
-			rounds = rounds % 50;
+		if (rounds > 300) {
+			rounds = rounds % 300;
 			epsilon -= decay_rate;
 			if (epsilon < minEpsilon) {
 				epsilon = minEpsilon;
@@ -191,38 +251,67 @@ public class MujRobot extends AdvancedRobot {
 	}
 
 	public void calculateQ() {
-        if (q_map.containsKey(lastState) == false) {
-        	createStateMap(lastState);
-        }
-        if (q_map.containsKey(currentState) == false) {
-        	createStateMap(currentState);
-        }
+		if (q_map.containsKey(lastState) == false) {
+			ArrayList<Double> tmp = new ArrayList<Double>();
+			tmp.add(0.0);
+			tmp.add(0.0);
+			tmp.add(0.0);
+			tmp.add(0.0);
+			q_map.put(lastState, tmp);
+		}
+		if (q_map.containsKey(currentState) == false) {
+			ArrayList<Double> tmp = new ArrayList<Double>();
+			tmp.add(0.0);
+			tmp.add(0.0);
+			tmp.add(0.0);
+			tmp.add(0.0);
+			q_map.put(currentState, tmp);
+		}
 
-            double q = q_map.get(lastState).get(lastAction);
-            double maxQ = Collections.max(q_map.get(currentState));
-            double newQ = updateQ(q, maxQ);
-            reward = 0;
-            ArrayList<Double> last_q_values = q_map.get(lastState);
-            last_q_values.set(lastAction, newQ);
-            q_map.put(lastState, last_q_values);
-        
-        
-    }
+			double q = q_map.get(lastState).get(lastAction);
+			double maxQ = Collections.max(q_map.get(currentState));
+			double newQ = updateQ(q, maxQ);
+			reward = 0;
+			ArrayList<Double> last_q_values = q_map.get(lastState);
+			last_q_values.set(lastAction, newQ);
+			q_map.put(lastState, last_q_values);
+		
+		
+	}
+	
+	public void calculateQ_strelba() {
+		if (q_map_strelba.containsKey(lastState_strelba) == false) {
+			ArrayList<Double> tmp = new ArrayList<Double>();
+			tmp.add(0.0);
+			tmp.add(0.0);
+			tmp.add(0.0);
+			q_map_strelba.put(lastState_strelba, tmp);
+		}
+		if (q_map_strelba.containsKey(currentState_strelba) == false) {
+			ArrayList<Double> tmp = new ArrayList<Double>();
+			tmp.add(0.0);
+			tmp.add(0.0);
+			tmp.add(0.0);
+			q_map_strelba.put(currentState_strelba, tmp);
+		}
 
-	public void createStateMap(String state) {
-		ArrayList<Double> tmp = new ArrayList<Double>();
-		tmp.add(0.0);
-		tmp.add(0.0);
-		tmp.add(0.0);
-		tmp.add(0.0);
-		tmp.add(0.0);
-		tmp.add(0.0);
-		tmp.add(0.0);
-		q_map.put(state, tmp);
+			double q = q_map_strelba.get(lastState_strelba).get(lastAction_strelba);
+			double maxQ = Collections.max(q_map_strelba.get(currentState_strelba));
+			double newQ = updateQ_strelba(q, maxQ);
+			reward_strelba = 0;
+			ArrayList<Double> last_q_values = q_map_strelba.get(lastState_strelba);
+			last_q_values.set(lastAction_strelba, newQ);
+			q_map_strelba.put(lastState_strelba, last_q_values);
+		
+		
 	}
 
 	public double updateQ(double q, double maxQ) {
 		return (1 - alpha) * q + alpha * (reward + discount * maxQ);
+	}
+	
+	public double updateQ_strelba(double q, double maxQ) {
+		return (1 - alpha) * q + alpha * (reward_strelba + discount * maxQ);
 	}
 
 	public void saveQMap() throws IOException {
@@ -230,6 +319,27 @@ public class MujRobot extends AdvancedRobot {
 		try {
 			w = new PrintStream(new RobocodeFileOutputStream(getDataFile("q_map.dat")));
 			for (Entry<String, ArrayList<Double>> entry : q_map.entrySet()) {
+				w.println(entry.getKey() + ":" + entry.getValue());
+			}
+
+			if (w.checkError()) {
+				out.println("I could not write the count!");
+			}
+		} catch (IOException e) {
+			out.println("IOException trying to write: ");
+			e.printStackTrace(out);
+		} finally {
+			if (w != null) {
+				w.close();
+			}
+		}
+	}
+	
+	public void saveQMap_strelba() throws IOException {
+		PrintStream w = null;
+		try {
+			w = new PrintStream(new RobocodeFileOutputStream(getDataFile("q_map_strelba.dat")));
+			for (Entry<String, ArrayList<Double>> entry : q_map_strelba.entrySet()) {
 				w.println(entry.getKey() + ":" + entry.getValue());
 			}
 
@@ -253,54 +363,60 @@ public class MujRobot extends AdvancedRobot {
 	 */
 
 	public void onHitByBullet(HitByBulletEvent e) {
-		reward = reward - 50;
+		reward = -50;
+		onHitBull = "1";
 		runMyTank();
 	}
 
 	public void onBulletHit(BulletHitEvent e) {
-		reward = reward + 80;
+		reward_strelba = 400;
+		
 
-	}
-
-	public void onHitRobot(HitRobotEvent e) {
-		reward = reward - 50;
-		runMyTank();
+     	double q = q_map_strelba.get(frozenState).get(0)*(1-alpha);
+		ArrayList<Double> last_q_values = q_map_strelba.get(frozenState);
+		last_q_values.set(0, q+(alpha*reward_strelba));
+		q_map_strelba.put(frozenState, last_q_values);
+		reward_strelba = 0;
+		
 	}
 
 	public void onBulletMissed(BulletMissedEvent e) {
-		reward = reward - 50;
-
+		reward_strelba = -100;
+		
+     	double q = q_map_strelba.get(frozenState).get(0)*(1-alpha);
+		ArrayList<Double> last_q_values = q_map_strelba.get(frozenState);
+		last_q_values.set(0, q+(alpha*reward_strelba));
+		q_map_strelba.put(frozenState, last_q_values);
+		reward_strelba = 0;
+		
 	}
-
-	public void onDeath(DeathEvent e) {
-		reward = reward - 50;
-
-	}
-
-	public void onWin(WinEvent e) {
-		reward = reward + 100;
-
+	
+	public void onBulletHitBullet(BulletHitBulletEvent e) {
+		// asi nepot¯ebuju ale p¯edstavuje poslednÌ stav co m˘ûe vyvolat bullet
 	}
 
 	public void onHitWall(HitWallEvent e) {
-		reward = reward - 50;
-		setAhead(getVelocity() * -1);
-		runMyTank();
+		reward = - 500;
 	}
 
 	public void onScannedRobot(ScannedRobotEvent e) {
-		reward = 1;
-		// angle = Integer.toString((int) Math.round((e.getBearing() + 180) / 10));
-		angle = e.getBearing();
-		dist = Integer.toString((int) Math.round(e.getDistance() / 10));
-		fire(3);
-		scan();
-		runMyTank();
+		setTurnGunRight(getHeading() - getGunHeading() + e.getBearing());
+		reward = 5;
+		angle = Integer.toString((int) Math.round((e.getHeading() + 180) / 15));
+		dist = Integer.toString((int) Math.round(e.getDistance() / 20));
+		vel = Integer.toString((int) Math.round(e.getVelocity()));		
+		Tank_strelba();
 	}
 
 	public void onBattleEnded(BattleEndedEvent e) {
 		try {
 			saveQMap();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		try {
+			saveQMap_strelba();
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -325,6 +441,33 @@ public class MujRobot extends AdvancedRobot {
 					tmp = reader.readLine();
 				}
 				out.println("Size of map durring load -- " + q_map.size());
+			} finally {
+				if (reader != null) {
+					reader.close();
+				}
+			}
+		} catch (IOException e) {
+		}
+	}
+	
+	public void loadQMap_strelba() {
+
+		try {
+			BufferedReader reader = null;
+			try {
+				reader = new BufferedReader(new FileReader(getDataFile("q_map_strelba.dat")));
+				String[] line;
+				String tmp = reader.readLine();
+				while (tmp != null) {
+					line = tmp.split(":");
+					ArrayList<Double> tmpAr = new ArrayList<Double>();
+					for (String s : line[1].replace("[", "").replace("]", "").split(",")) {
+						tmpAr.add(Double.valueOf(s));
+					}
+					q_map_strelba.put(line[0], tmpAr);
+					tmp = reader.readLine();
+				}
+				out.println("Size of map durring load -- " + q_map_strelba.size());
 			} finally {
 				if (reader != null) {
 					reader.close();
