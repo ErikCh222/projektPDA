@@ -66,7 +66,7 @@ public class RobocodeRunner {
 
 		// Setup the battle specification
 
-		int numberOfRounds =  10000;
+		int numberOfRounds =  1000;
 		BattlefieldSpecification battlefield = new BattlefieldSpecification(600, 600); // 800x600
 		// RobotSpecification[] selectedRobots =
 		// engine.getLocalRepository("sample.Corners, sample.MujRobot");

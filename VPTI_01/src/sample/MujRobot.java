@@ -29,8 +29,8 @@ import robocode.WinEvent;
 public class MujRobot extends AdvancedRobot {
 
 	private static HashMap<String, ArrayList<Double>> q_map = new HashMap<String, ArrayList<Double>>();
-	private static Double epsilon = 1.0;
-	private static Double decay_rate = 0.1;
+	private static Double epsilon = 0.3;
+	private static Double decay_rate = 0.3;
 	private static Double minEpsilon = 0.01;
 	private static Double alpha = 0.3;
 	private static Double discount = 0.9;
@@ -47,7 +47,7 @@ public class MujRobot extends AdvancedRobot {
 	// private Integer currentAction = 0;
 	private static Integer lastAction = 0;
 	public Random randomNumber = new Random();
-	private static boolean useMap = false;
+	private static boolean useMap = true;
 
 	private static HashMap<Integer, RobotFunction> mapOfActions = new HashMap<Integer, RobotFunction>();
 	
@@ -55,7 +55,7 @@ public class MujRobot extends AdvancedRobot {
 	public void run() {
 		if (useMap) {
 			loadQMap(); // nacteni tabulky
-			epsilon = 0.1;
+			epsilon = 0.2;
 		}
 		initializeMapOfActions();
 		while (true) {
@@ -70,7 +70,6 @@ public class MujRobot extends AdvancedRobot {
 	public void runMyTank() {
 		int action = 0;
 		double trueRandomNumber = randomNumber.nextDouble();
-		boolean calcMap = true;
 		// vyber nahodne akce s ohledem na pravdepodobnost epsilon
 		if (epsilon > trueRandomNumber) {
 			action = randomNumber.nextInt(mapOfActionSize);
@@ -82,8 +81,10 @@ public class MujRobot extends AdvancedRobot {
 			Double forIndex = Collections.max(q_values);
 			action = q_map.get(currentState).indexOf(forIndex);
 		}
-		
-		actions(this.mapOfActions.get(action));
+		out.println("Action num " + action);
+		RobotFunction rf = this.getMapOfActions().get(action);
+		out.println("func" + rf.getFunctionName() );
+		actions(rf);
 		lastAction = action;
 		lastState = currentState;
 
@@ -104,30 +105,30 @@ public class MujRobot extends AdvancedRobot {
 						"setFire",
 						"setTurnGunLeft","setTurnGunRight"
 						);
-		int mapVals= 0;
+		int mapVals= -1;
 		for(String name: actionNames){
 			if(name == "setFire") {
-				for (int i = 0; i<100; i++) {
+				for (int i = 0; i<20; i++) {
 					mapVals++;
-					this.mapOfActions.put(mapVals, new RobotFunction(i, name));
+					this.getMapOfActions().put(mapVals, new RobotFunction(i*5, name));
 				}
 			}
 			else if(name == "setAhead" || name == "setBack") {
-				for (int j = 1; j<getBattleFieldHeight() || j<getBattleFieldWidth() ; j+=10 ) {
+				for (int j = 1; j<100; j+=10 ) {
 					mapVals++;
-					this.mapOfActions.put(mapVals, new RobotFunction(j, name));
+					this.getMapOfActions().put(mapVals, new RobotFunction(j, name));
 				}
 				
 				
 			}
 			else {
-				for (int j = 1; j<360 ; j++ ) {
+				for (int j = 1; j<360 ; j+=10 ) {
 					mapVals++;
-					this.mapOfActions.put(mapVals, new RobotFunction(j, name));
+					this.getMapOfActions().put(mapVals, new RobotFunction(j, name));
 				}
 			}
 		}
-		mapOfActionSize = this.mapOfActions.size();
+		mapOfActionSize = this.getMapOfActions().size();
 	}
 	
 	
@@ -288,7 +289,7 @@ public class MujRobot extends AdvancedRobot {
 	}
 
 	public void onWin(WinEvent e) {
-		reward = reward + 150;
+		reward = reward + 200;
 
 	}
 
@@ -300,10 +301,8 @@ public class MujRobot extends AdvancedRobot {
 
 	public void onScannedRobot(ScannedRobotEvent e) {
 		reward += 10;
-		
-		// angle = Integer.toString((int) Math.round((e.getBearing() + 180) / 10));
-		scan();
 		runMyTank();
+		scan();
 	}
 
 	public void onBattleEnded(BattleEndedEvent e) {
@@ -340,6 +339,14 @@ public class MujRobot extends AdvancedRobot {
 			}
 		} catch (IOException e) {
 		}
+	}
+
+	public HashMap<Integer, RobotFunction> getMapOfActions() {
+		return mapOfActions;
+	}
+
+	public void setMapOfActions(HashMap<Integer, RobotFunction> mapOfActions) {
+		MujRobot.mapOfActions = mapOfActions;
 	}
 
 }
