@@ -2,17 +2,18 @@ package sample;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.Writer;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map.Entry;
-import java.util.*;
+import java.util.stream.Collectors;
+import java.util.Random;
+import java.util.List;
+import java.util.Arrays;
 
 import robocode.AdvancedRobot;
 import robocode.BattleEndedEvent;
@@ -23,7 +24,6 @@ import robocode.HitByBulletEvent;
 import robocode.HitRobotEvent;
 import robocode.HitWallEvent;
 import robocode.RobocodeFileOutputStream;
-import robocode.Robot;
 import robocode.RoundEndedEvent;
 import robocode.ScannedRobotEvent;
 import robocode.WinEvent;
@@ -205,41 +205,6 @@ public class MujRobot extends AdvancedRobot {
 		return (1 - alpha) * q + alpha * (reward + discount * maxQ);
 	}
 
-	public void saveState() throws IOException {
-		LocalDateTime myDateObj = LocalDateTime.now();
-		DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss");
-		String formattedDate = myDateObj.format(myFormatObj);
-
-		StringBuilder sb = new StringBuilder();
-		for (Entry<String, ArrayList<Double>> entry : q_map.entrySet()) {
-			sb.append(entry.getKey() + ":" + entry.getValue() + "\n");
-		}
-		writeData(sb.toString(), formattedDate + "_q_data.dat");
-
-		double winRate = (wictories / (double) losses) * 100;
-		writeData("Wins: " + wictories + "\nLosses: " + losses + "\nWin Rate: " + winRate,
-				formattedDate + "_score.txt");
-
-	}
-
-	public void writeData(String data, String fileName) {
-		PrintStream printer = null;
-		try {
-			printer = new PrintStream(new RobocodeFileOutputStream(getDataFile(fileName)));
-			printer.append(data);
-			if (printer.checkError()) {
-				out.println("I could not write the count!");
-			}
-		} catch (IOException e) {
-			out.println("IOException trying to write: ");
-			e.printStackTrace(out);
-		} finally {
-			if (printer != null) {
-				printer.close();
-			}
-		}
-	}
-
 	public void onHitByBullet(HitByBulletEvent e) {
 		reward = reward - 50;
 		runMyTank();
@@ -285,38 +250,63 @@ public class MujRobot extends AdvancedRobot {
 		runMyTank();
 	}
 
-	public void onBattleEnded(BattleEndedEvent e) {
+	public void saveState() throws IOException {
+		LocalDateTime myDateObj = LocalDateTime.now();
+		DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss");
+		String formattedDate = myDateObj.format(myFormatObj);
+
+		StringBuilder sb = new StringBuilder();
+		for (Entry<String, ArrayList<Double>> entry : q_map.entrySet()) {
+			String values = String.join(",",
+					entry.getValue().stream().map(op -> op.toString()).collect(Collectors.toList()));
+			sb.append(entry.getKey() + "," + values + "\n");
+		}
+		writeData(sb.toString(), formattedDate + "_data.dat");
+
+		double winRate = (wictories / (double) losses) * 100;
+		writeData("Wins: " + wictories + "\nLosses: " + losses + "\nWin Rate: " + winRate,
+				formattedDate + "_score.txt");
+
+	}
+
+	private void writeData(String data, String fileName) {
+		PrintStream printer = null;
 		try {
-			saveState();
-		} catch (IOException e1) {
-			e1.printStackTrace();
+			printer = new PrintStream(new RobocodeFileOutputStream(getDataFile(fileName)));
+			printer.append(data);
+		} catch (IOException e) {
+			e.printStackTrace(out);
+		} finally {
+			printer.close();
 		}
 	}
 
 	public void loadState() {
 
 		try {
-			BufferedReader reader = null;
-			try {
-				reader = new BufferedReader(new FileReader(getDataFile("q_data.dat")));
-				String[] line;
-				String tmp = reader.readLine();
-				while (tmp != null) {
-					line = tmp.split(":");
-					ArrayList<Double> tmpAr = new ArrayList<Double>();
-					for (String s : line[1].replace("[", "").replace("]", "").split(",")) {
-						tmpAr.add(Double.valueOf(s));
-					}
-					q_map.put(line[0], tmpAr);
-					tmp = reader.readLine();
+			BufferedReader reader = new BufferedReader(new FileReader(getDataFile("data.dat")));
+			List<String> readLine;
+			String temp;
+			while (reader.ready()) {
+				temp = reader.readLine();
+				readLine = Arrays.asList(temp.split(","));
+				ArrayList<Double> q_values = new ArrayList<Double>();
+				for (int i = 1; i < readLine.size(); i++) {
+					q_values.add(Double.valueOf(readLine.get(i)));
 				}
-				out.println("Size of map durring load -- " + q_map.size());
-			} finally {
-				if (reader != null) {
-					reader.close();
-				}
+				q_map.put(readLine.get(0), q_values);
 			}
+			reader.close();
 		} catch (IOException e) {
+			e.printStackTrace(out);
+		}
+	}
+
+	public void onBattleEnded(BattleEndedEvent e) {
+		try {
+			saveState();
+		} catch (IOException e1) {
+			e1.printStackTrace();
 		}
 	}
 
