@@ -22,6 +22,7 @@ import robocode.HitRobotEvent;
 import robocode.HitWallEvent;
 import robocode.RobocodeFileOutputStream;
 import robocode.Robot;
+import robocode.RobotDeathEvent;
 import robocode.RoundEndedEvent;
 import robocode.ScannedRobotEvent;
 import robocode.WinEvent;
@@ -29,22 +30,17 @@ import robocode.WinEvent;
 public class MujRobot extends AdvancedRobot {
 
 	private static HashMap<String, ArrayList<Double>> q_map = new HashMap<String, ArrayList<Double>>();
-	private static Double epsilon = 0.3;
-	private static Double decay_rate = 0.3;
+	private static Double epsilon = 0.5;
+	private static Double decay_rate = 0.005;
 	private static Double minEpsilon = 0.01;
-	private static Double alpha = 0.3;
-	private static Double discount = 0.9;
+	private static Double alpha = 0.1;
+	private static Double discount = 0.01;
 
 	private static Integer rounds = 0;
-
 	private static Integer reward = 0;
-
-	private static Double angle = 0.0;
-	private static String dist;
 	private static String currentState = "";
 	private static String lastState = "";
 	public static int mapOfActionSize;
-	// private Integer currentAction = 0;
 	private static Integer lastAction = 0;
 	public Random randomNumber = new Random();
 	private static boolean useMap = true;
@@ -55,7 +51,7 @@ public class MujRobot extends AdvancedRobot {
 	public void run() {
 		if (useMap) {
 			loadQMap(); // nacteni tabulky
-			epsilon = 0.2;
+			epsilon = 0.9;
 		}
 		initializeMapOfActions();
 		while (true) {
@@ -81,9 +77,9 @@ public class MujRobot extends AdvancedRobot {
 			Double forIndex = Collections.max(q_values);
 			action = q_map.get(currentState).indexOf(forIndex);
 		}
-		out.println("Action num " + action);
+		
 		RobotFunction rf = this.getMapOfActions().get(action);
-		out.println("func" + rf.getFunctionName() );
+		
 		actions(rf);
 		lastAction = action;
 		lastState = currentState;
@@ -92,7 +88,6 @@ public class MujRobot extends AdvancedRobot {
 		currentState = getState();
 		
 		calculateQ();
-		dist = "0";
 
 	}
 
@@ -188,7 +183,7 @@ public class MujRobot extends AdvancedRobot {
 			heat = 1;
 		}
 
-		return energy + "-" + heat + "-" + dist;
+		return energy + "-" + heat + "-";
 		// + "-"+angle;
 	}
 
@@ -256,24 +251,19 @@ public class MujRobot extends AdvancedRobot {
 		}
 	}
 
-	/*
-	 * ODMENY -onRobotDeath -onBulletHit done -onHitByBullet done -onHitRobot done
-	 * -onBulletMissed done -onDeath done -onHitWall done -onScannedRobot
-	 * -getHeading -getDistance -getBearing
-	 */
 
 	public void onHitByBullet(HitByBulletEvent e) {
-		reward = reward - 50;
+		reward = reward - 40;
 		runMyTank();
 	}
 
 	public void onBulletHit(BulletHitEvent e) {
-		reward = reward + 100;
+		reward = reward + 300;
 
 	}
 
 	public void onHitRobot(HitRobotEvent e) {
-		reward = reward - 100;
+		reward = reward - 10;
 		runMyTank();
 	}
 
@@ -283,13 +273,18 @@ public class MujRobot extends AdvancedRobot {
 	}
 
 	public void onDeath(DeathEvent e) {
-		reward = reward - 150;
-
+		reward = (int) (reward - (100000/e.getTime()));
+		out.println("Time alive" + e.getTime() );
+		
+		
 	}
 
 	public void onWin(WinEvent e) {
-		reward = reward + 200;
-
+		reward = reward + 1000;
+	}
+	
+	public void onRobotDeath(RobotDeathEvent e) {
+		reward = reward + 300;
 	}
 
 	public void onHitWall(HitWallEvent e) {
@@ -299,9 +294,10 @@ public class MujRobot extends AdvancedRobot {
 	}
 
 	public void onScannedRobot(ScannedRobotEvent e) {
-		reward += 10;
-		runMyTank();
+		reward += 50;
+		fire(10);
 		scan();
+		runMyTank();
 	}
 
 	public void onBattleEnded(BattleEndedEvent e) {
