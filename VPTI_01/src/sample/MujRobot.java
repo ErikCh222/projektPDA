@@ -90,9 +90,8 @@ public class MujRobot extends AdvancedRobot {
 
 		// tady je reprezentace stavu
 		currentState = getState();
-		if (!useMap) {
-			calculateQ();
-		}
+		
+		calculateQ();
 		dist = "0";
 
 	}
