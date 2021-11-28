@@ -4,13 +4,21 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
+<<<<<<< HEAD
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+=======
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+>>>>>>> samo-branch
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map.Entry;
-import java.util.*;
+import java.util.stream.Collectors;
+import java.util.Random;
+import java.util.List;
+import java.util.Arrays;
 
 import robocode.AdvancedRobot;
 import robocode.BattleEndedEvent;
@@ -21,8 +29,11 @@ import robocode.HitByBulletEvent;
 import robocode.HitRobotEvent;
 import robocode.HitWallEvent;
 import robocode.RobocodeFileOutputStream;
+<<<<<<< HEAD
 import robocode.Robot;
 import robocode.RobotDeathEvent;
+=======
+>>>>>>> samo-branch
 import robocode.RoundEndedEvent;
 import robocode.ScannedRobotEvent;
 import robocode.WinEvent;
@@ -30,6 +41,7 @@ import robocode.WinEvent;
 public class MujRobot extends AdvancedRobot {
 
 	private static HashMap<String, ArrayList<Double>> q_map = new HashMap<String, ArrayList<Double>>();
+<<<<<<< HEAD
 	private static Double epsilon = 0.5;
 	private static Double decay_rate = 0.005;
 	private static Double minEpsilon = 0.01;
@@ -44,12 +56,33 @@ public class MujRobot extends AdvancedRobot {
 	private static Integer lastAction = 0;
 	public Random randomNumber = new Random();
 	private static boolean useMap = true;
+=======
+	private static Double epsilon = 1.0;
+	private static Double decay_rate = 0.05;
+	private static Double minEpsilon = 0.01;
+	private static Double alpha = 0.3;
+	private static Double discount = 0.9;
+	private static Integer rounds = 0;
+	private static Integer reward = 0;
+	private static Double angle = 0.0;
+	private static String dist;
+	private static String currentState = "";
+	private static String lastState = "";
+	private static Integer wictories = 0;
+	private static Integer losses = 0;
+
+	// private Integer currentAction = 0;
+	private static Integer lastAction = 0;
+	public Random randomNumber = new Random();
+	private static boolean useMap = false;
+>>>>>>> samo-branch
 
 	private static HashMap<Integer, RobotFunction> mapOfActions = new HashMap<Integer, RobotFunction>();
 	
 	
 	public void run() {
 		if (useMap) {
+<<<<<<< HEAD
 			loadQMap(); // nacteni tabulky
 			epsilon = 0.9;
 		}
@@ -123,11 +156,49 @@ public class MujRobot extends AdvancedRobot {
 			}
 		}
 		mapOfActionSize = this.getMapOfActions().size();
+=======
+			loadState(); // nacteni tabulky
+			epsilon = 0.01;
+		}
+		while (true) {
+			runMyTank();
+		}
+	}
+
+	// Definice akci
+
+	public void runMyTank() {
+		int action = 0;
+		double trueRandomNumber = randomNumber.nextDouble();
+
+		// vyber nahodne akce s ohledem na pravdepodobnost epsilon
+		if (epsilon > trueRandomNumber) {
+			action = randomNumber.nextInt(8);
+		}
+		// vyber akce z Q mapy
+		else if (q_map.containsKey(currentState)) {
+			ArrayList<Double> q_values = new ArrayList<Double>();
+			q_values = q_map.get(currentState);
+			Double forIndex = Collections.max(q_values);
+			action = q_map.get(currentState).indexOf(forIndex);
+		}
+		actions(action);
+		lastState = currentState;
+
+		// tady je reprezentace stavu
+		currentState = getState();
+		if (!useMap) {
+			calculateQ();
+		}
+		dist = "0";
+
+>>>>>>> samo-branch
 	}
 	
 	
 	public void actions(RobotFunction robotFunction) {
 
+<<<<<<< HEAD
 		switch (robotFunction.getFunctionName()) {
 
 		case "setAhead":
@@ -150,6 +221,47 @@ public class MujRobot extends AdvancedRobot {
 			break;
 		case "setTurnGunRight":
 			setTurnGunRight(robotFunction.getParameter());
+=======
+	public void actions(int action) {
+		switch (action) {
+		case 0:
+			setAhead(100);
+			turnRight(40);
+			lastAction = 0;
+			break;
+		case 1:
+			setAhead(100);
+			turnRight(-40);
+			lastAction = 1;
+			break;
+		case 2:
+			setAhead(-100);
+			turnRight(40);
+			lastAction = 2;
+			break;
+		case 3:
+			setAhead(100);
+			turnRight(-40);
+			lastAction = 3;
+			break;
+		case 4:
+			// turnRadarRight(120);
+			setTurnRight(angle + 10);
+			setAhead(100);
+			lastAction = 4;
+			break;
+		case 5:
+			setTurnRight(angle);
+			setAhead(100);
+			fire(2);
+			lastAction = 5;
+			break;
+		case 6:
+			// turnGunRight(-20);
+			// turnRadarRight(-20);
+			doNothing();
+			lastAction = 6;
+>>>>>>> samo-branch
 			break;
 		default:
 			doNothing();
@@ -161,11 +273,14 @@ public class MujRobot extends AdvancedRobot {
 	// Ziskani sektoru
 	public String getState() {
 		int energy;
+<<<<<<< HEAD
 		/*
 		 * double X = getX(); double Y = getY(); int coordX = (int) Math.floor(X / 30);
 		 * int coordY = (int) Math.floor(Y / 30); System.out.println((coordY * 20) +
 		 * coordX);
 		 */
+=======
+>>>>>>> samo-branch
 		if (getEnergy() < 25) {
 			energy = 0;
 		} else if (getEnergy() > 25 && getEnergy() < 50) {
@@ -183,7 +298,11 @@ public class MujRobot extends AdvancedRobot {
 			heat = 1;
 		}
 
+<<<<<<< HEAD
 		return energy + "-" + heat + "-";
+=======
+		return energy + "-" + heat + "-" + dist;
+>>>>>>> samo-branch
 		// + "-"+angle;
 	}
 
@@ -200,6 +319,7 @@ public class MujRobot extends AdvancedRobot {
 	}
 
 	public void calculateQ() {
+<<<<<<< HEAD
         if (q_map.containsKey(lastState) == false) {
         	createStateMap(lastState);
         }
@@ -225,54 +345,81 @@ public class MujRobot extends AdvancedRobot {
 		}
 		q_map.put(state, tmp);
 	}
+=======
+		if (q_map.containsKey(lastState) == false) {
+			createStateMap(lastState);
+		}
+		if (q_map.containsKey(currentState) == false) {
+			createStateMap(currentState);
+		}
+>>>>>>> samo-branch
 
+		double q = q_map.get(lastState).get(lastAction);
+		double maxQ = Collections.max(q_map.get(currentState));
+		double newQ = updateQ(q, maxQ);
+		reward = 0;
+		ArrayList<Double> last_q_values = q_map.get(lastState);
+		last_q_values.set(lastAction, newQ);
+		q_map.put(lastState, last_q_values);
+
+	}
+
+	public void createStateMap(String state) {
+		ArrayList<Double> tmp = new ArrayList<Double>();
+		tmp.add(0.0);
+		tmp.add(0.0);
+		tmp.add(0.0);
+		tmp.add(0.0);
+		tmp.add(0.0);
+		tmp.add(0.0);
+		tmp.add(0.0);
+		q_map.put(state, tmp);
+	}
+
+<<<<<<< HEAD
+
+	public void onHitByBullet(HitByBulletEvent e) {
+		reward = reward - 40;
+=======
 	public double updateQ(double q, double maxQ) {
 		return (1 - alpha) * q + alpha * (reward + discount * maxQ);
 	}
 
-	public void saveQMap() throws IOException {
-		PrintStream w = null;
-		try {
-			w = new PrintStream(new RobocodeFileOutputStream(getDataFile("q_map.dat")));
-			for (Entry<String, ArrayList<Double>> entry : q_map.entrySet()) {
-				w.println(entry.getKey() + ":" + entry.getValue());
-			}
-
-			if (w.checkError()) {
-				out.println("I could not write the count!");
-			}
-		} catch (IOException e) {
-			out.println("IOException trying to write: ");
-			e.printStackTrace(out);
-		} finally {
-			if (w != null) {
-				w.close();
-			}
-		}
-	}
-
-
 	public void onHitByBullet(HitByBulletEvent e) {
-		reward = reward - 40;
+		reward = reward - 50;
+>>>>>>> samo-branch
 		runMyTank();
 	}
 
 	public void onBulletHit(BulletHitEvent e) {
+<<<<<<< HEAD
 		reward = reward + 300;
+=======
+		reward = reward + 80;
+>>>>>>> samo-branch
 
 	}
 
 	public void onHitRobot(HitRobotEvent e) {
+<<<<<<< HEAD
 		reward = reward - 10;
+=======
+		reward = reward - 50;
+>>>>>>> samo-branch
 		runMyTank();
 	}
 
 	public void onBulletMissed(BulletMissedEvent e) {
+<<<<<<< HEAD
 		reward = reward - 40;
+=======
+		reward = reward - 50;
+>>>>>>> samo-branch
 
 	}
 
 	public void onDeath(DeathEvent e) {
+<<<<<<< HEAD
 		reward = (int) (reward - (100000/e.getTime()));
 		out.println("Time alive" + e.getTime() );
 		
@@ -289,50 +436,94 @@ public class MujRobot extends AdvancedRobot {
 
 	public void onHitWall(HitWallEvent e) {
 		reward = reward - 100;
+=======
+		reward = reward - 50;
+		losses++;
+	}
+
+	public void onWin(WinEvent e) {
+		reward = reward + 100;
+		wictories++;
+	}
+
+	public void onHitWall(HitWallEvent e) {
+		reward = reward - 50;
+>>>>>>> samo-branch
 		setAhead(getVelocity() * -1);
 		runMyTank();
 	}
 
 	public void onScannedRobot(ScannedRobotEvent e) {
+<<<<<<< HEAD
 		reward += 50;
 		fire(10);
+=======
+		reward = 1;
+		angle = e.getBearing();
+		dist = Integer.toString((int) Math.round(e.getDistance() / 10));
+		fire(3);
+>>>>>>> samo-branch
 		scan();
 		runMyTank();
 	}
 
-	public void onBattleEnded(BattleEndedEvent e) {
+	public void saveState() throws IOException {
+		LocalDateTime myDateObj = LocalDateTime.now();
+		DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss");
+		String formattedDate = myDateObj.format(myFormatObj);
+
+		StringBuilder sb = new StringBuilder();
+		for (Entry<String, ArrayList<Double>> entry : q_map.entrySet()) {
+			String values = String.join(",",
+					entry.getValue().stream().map(op -> op.toString()).collect(Collectors.toList()));
+			sb.append(entry.getKey() + "," + values + "\n");
+		}
+		writeData(sb.toString(), formattedDate + "_data.dat");
+
+		double winRate = (wictories / (double) losses) * 100;
+		writeData("Wins: " + wictories + "\nLosses: " + losses + "\nWin Rate: " + winRate,
+				formattedDate + "_score.txt");
+
+	}
+
+	private void writeData(String data, String fileName) {
+		PrintStream printer = null;
 		try {
-			saveQMap();
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			printer = new PrintStream(new RobocodeFileOutputStream(getDataFile(fileName)));
+			printer.append(data);
+		} catch (IOException e) {
+			e.printStackTrace(out);
+		} finally {
+			printer.close();
 		}
 	}
 
-	public void loadQMap() {
+	public void loadState() {
 
 		try {
-			BufferedReader reader = null;
-			try {
-				reader = new BufferedReader(new FileReader(getDataFile("q_map.dat")));
-				String[] line;
-				String tmp = reader.readLine();
-				while (tmp != null) {
-					line = tmp.split(":");
-					ArrayList<Double> tmpAr = new ArrayList<Double>();
-					for (String s : line[1].replace("[", "").replace("]", "").split(",")) {
-						tmpAr.add(Double.valueOf(s));
-					}
-					q_map.put(line[0], tmpAr);
-					tmp = reader.readLine();
+			BufferedReader reader = new BufferedReader(new FileReader(getDataFile("data.dat")));
+			List<String> readLine;
+			String temp;
+			while (reader.ready()) {
+				temp = reader.readLine();
+				readLine = Arrays.asList(temp.split(","));
+				ArrayList<Double> q_values = new ArrayList<Double>();
+				for (int i = 1; i < readLine.size(); i++) {
+					q_values.add(Double.valueOf(readLine.get(i)));
 				}
-				out.println("Size of map durring load -- " + q_map.size());
-			} finally {
-				if (reader != null) {
-					reader.close();
-				}
+				q_map.put(readLine.get(0), q_values);
 			}
+			reader.close();
 		} catch (IOException e) {
+			e.printStackTrace(out);
+		}
+	}
+
+	public void onBattleEnded(BattleEndedEvent e) {
+		try {
+			saveState();
+		} catch (IOException e1) {
+			e1.printStackTrace();
 		}
 	}
 
