@@ -32,7 +32,7 @@ public class RL extends AdvancedRobot {
 	private static int losses = 0;
 	private Random randomNumber = new Random();
 	private static Integer rounds = 0;
-	private static boolean useMap = true; // Change to true to load map from file, false to learn from scratch
+	private static boolean useMap = false; 
 	private static double ENbear;
 
 	// Moving table
@@ -50,10 +50,9 @@ public class RL extends AdvancedRobot {
 	private static HashMap<String, ArrayList<Double>> q_map_shooting = new HashMap<String, ArrayList<Double>>();
 
 	public void run() {
+		useSavedMap(); // Comment out to learn from scratch
 		if (useMap) {
 			loadState(); // nacteni tabulky
-			epsilon = 0.01;
-			useMap = false;
 		}
 		setAdjustGunForRobotTurn(true);
 		setAdjustRadarForGunTurn(true);
@@ -62,6 +61,12 @@ public class RL extends AdvancedRobot {
 			runMyTank();
 		}
 	}
+	
+	private void useSavedMap() {
+		epsilon = 0.01;
+		useMap = true;
+	}
+	
 
 	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Moving %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	// Definice akci
@@ -349,11 +354,11 @@ public class RL extends AdvancedRobot {
 	}
 
 	public void loadState() {
-		loadTable("data.dat");
-		loadTable("data_shooting.dat");
+		loadTable("data.dat", q_map);
+		loadTable("data_shooting.dat", q_map_shooting);
 	}
 
-	private void loadTable(String name) {
+	private void loadTable(String name, HashMap<String, ArrayList<Double>> map) {
 		try {
 			BufferedReader reader = new BufferedReader(new FileReader(getDataFile(name)));
 			List<String> readLine;
@@ -365,7 +370,7 @@ public class RL extends AdvancedRobot {
 				for (int i = 1; i < readLine.size(); i++) {
 					q_values.add(Double.valueOf(readLine.get(i)));
 				}
-				q_map.put(readLine.get(0), q_values);
+				map.put(readLine.get(0), q_values);
 			}
 			reader.close();
 		} catch (IOException e) {

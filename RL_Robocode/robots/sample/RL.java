@@ -32,7 +32,7 @@ public class RL extends AdvancedRobot {
 	private static int losses = 0;
 	private Random randomNumber = new Random();
 	private static Integer rounds = 0;
-	private static boolean useMap = true;
+	private static boolean useMap = false; 
 	private static double ENbear;
 
 	// Moving table
@@ -50,12 +50,10 @@ public class RL extends AdvancedRobot {
 	private static HashMap<String, ArrayList<Double>> q_map_shooting = new HashMap<String, ArrayList<Double>>();
 
 	public void run() {
+		useSavedMap(); // Comment out to learn from scratch
 		if (useMap) {
 			loadState(); // nacteni tabulky
-			epsilon = 0.01;
-			useMap = false;
 		}
-		// loadQMap(); // nacteni tabulky
 		setAdjustGunForRobotTurn(true);
 		setAdjustRadarForGunTurn(true);
 		setAdjustRadarForRobotTurn(true);
@@ -63,6 +61,12 @@ public class RL extends AdvancedRobot {
 			runMyTank();
 		}
 	}
+	
+	private void useSavedMap() {
+		epsilon = 0.01;
+		useMap = true;
+	}
+	
 
 	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Moving %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	// Definice akci
@@ -160,7 +164,7 @@ public class RL extends AdvancedRobot {
 	}	
 
 	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Shooting %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-	public void tank_shooting() {
+	public void tankShooting() {
 		int action = 0;
 		double trueRandomNumber = randomNumber.nextDouble();
 
@@ -188,22 +192,11 @@ public class RL extends AdvancedRobot {
 
 		setTurnRadarRight(normalizeBearing(getHeading() - getRadarHeading() + ENbear));
 		execute();
-
+		
+		double normalizedBearing = normalizeBearing(getHeading() - getGunHeading() + ENbear);
 		switch (action) {
-
-		case 2:
-			reward_shooting = 100;
-			setTurnGunRight(normalizeBearing(getHeading() - getGunHeading() + ENbear));
-			lastAction_shooting = 2;
-			break;
-		case 1:
-			reward_shooting = -5;
-			doNothing();
-			lastAction_shooting = 1;
-			break;
 		case 0:
-			if (normalizeBearing(getHeading() - getGunHeading() + ENbear) < 5
-					&& normalizeBearing(getHeading() - getGunHeading() + ENbear) > -5 && getGunHeat() == 0) {
+			if (normalizedBearing < 5 && normalizedBearing > -5 && getGunHeat() == 0) {
 				reward_shooting = 500;
 			} else {
 				reward_shooting = -200;
@@ -211,13 +204,22 @@ public class RL extends AdvancedRobot {
 			setFire(3);
 			lastAction_shooting = 0;
 			break;
+		case 1:
+			reward_shooting = -5;
+			doNothing();
+			lastAction_shooting = 1;
+			break;
+		case 2:
+			reward_shooting = 100;
+			setTurnGunRight(normalizedBearing);
+			lastAction_shooting = 2;
+			break;
 		default:
 			break;
 		}
 		execute();
 	}
 
-	// Ziskani sektoru
 	public String getStateShooting() {
 		boolean gunReady;
 		if (getGunHeat() == 0) {
@@ -269,7 +271,7 @@ public class RL extends AdvancedRobot {
 
 	public void onScannedRobot(ScannedRobotEvent e) {
 		ENbear = e.getBearing();
-		tank_shooting();
+		tankShooting();
 	}
 	
 	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Ostatne %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -352,11 +354,11 @@ public class RL extends AdvancedRobot {
 	}
 
 	public void loadState() {
-		loadTable("data.dat");
-		loadTable("data_shooting.dat");
+		loadTable("data.dat", q_map);
+		loadTable("data_shooting.dat", q_map_shooting);
 	}
 
-	private void loadTable(String name) {
+	private void loadTable(String name, HashMap<String, ArrayList<Double>> map) {
 		try {
 			BufferedReader reader = new BufferedReader(new FileReader(getDataFile(name)));
 			List<String> readLine;
@@ -368,7 +370,7 @@ public class RL extends AdvancedRobot {
 				for (int i = 1; i < readLine.size(); i++) {
 					q_values.add(Double.valueOf(readLine.get(i)));
 				}
-				q_map.put(readLine.get(0), q_values);
+				map.put(readLine.get(0), q_values);
 			}
 			reader.close();
 		} catch (IOException e) {
