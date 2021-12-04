@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -29,7 +30,7 @@ import robocode.WinEvent;
 public class RL extends AdvancedRobot {
 
 	private static Double epsilon = 1.0;
-	private static Double decay_rate = 0.001;
+	private static Double decay_rate = 0.01;
 	private static Double minEpsilon = 0.01;
 	private static Double alpha = 0.05;
 	private static Double discount = 0.9;
@@ -37,8 +38,9 @@ public class RL extends AdvancedRobot {
 	private static int losses = 0;
 	private Random randomNumber = new Random();
 	private static Integer rounds = 0;
-	private static boolean useMap = false; 
+	private static boolean useMap = false;
 	private static double ENbear;
+	private static StringBuilder winrateData = new StringBuilder();
 
 	// Moving table
 	private static Integer reward = 0;
@@ -66,14 +68,15 @@ public class RL extends AdvancedRobot {
 			runMyTank();
 		}
 	}
-	
+
 	private void useSavedMap() {
 		epsilon = 0.01;
 		useMap = true;
 	}
-	
 
-	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Moving %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Hybanie %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	// Definice akci
 	public void runMyTank() {
 		int action = 0;
@@ -104,30 +107,27 @@ public class RL extends AdvancedRobot {
 		case 0:
 			setAhead(100);
 			setTurnRight(-30);
-			execute();
 			lastAction = 0;
 			break;
 		case 1:
 			setAhead(-100);
 			setTurnRight(-30);
-			execute();
 			lastAction = 1;
 			break;
 		case 2:
 			setAhead(100);
 			setTurnRight(30);
-			execute();
 			lastAction = 2;
 			break;
 		case 3:
 			setAhead(-100);
 			setTurnRight(30);
-			execute();
 			lastAction = 3;
 			break;
 		default:
 			break;
 		}
+		execute();
 		setTurnRadarRight(-7);
 	}
 
@@ -166,9 +166,11 @@ public class RL extends AdvancedRobot {
 
 	public double updateQ(double q, double maxQ) {
 		return (1 - alpha) * q + alpha * (reward + discount * maxQ);
-	}	
+	}
 
-	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Shooting %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Strielanie %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	public void tankShooting() {
 		int action = 0;
 		double trueRandomNumber = randomNumber.nextDouble();
@@ -197,7 +199,7 @@ public class RL extends AdvancedRobot {
 
 		setTurnRadarRight(normalizeBearing(getHeading() - getRadarHeading() + ENbear));
 		execute();
-		
+
 		double normalizedBearing = normalizeBearing(getHeading() - getGunHeading() + ENbear);
 		switch (action) {
 		case 0:
@@ -261,11 +263,11 @@ public class RL extends AdvancedRobot {
 		last_q_values.set(lastAction_shooting, newQ);
 		q_map_shooting.put(lastState_shooting, last_q_values);
 	}
-	
+
 	public double updateQShooting(double q, double maxQ) {
 		return (1 - alpha) * q + alpha * (reward_shooting + discount * maxQ);
 	}
-	
+
 	private double normalizeBearing(double angle) {
 		while (angle > 180)
 			angle -= 360;
@@ -278,14 +280,21 @@ public class RL extends AdvancedRobot {
 		ENbear = e.getBearing();
 		tankShooting();
 	}
-	
-	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Ostatne %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Ostatne %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 	// Zvyseni poctu kol, postupny prechod na rozhodovani dle q mapy
 	public void onRoundEnded(RoundEndedEvent e) {
 		rounds++;
-		if (rounds > 400) {
-			rounds = rounds % 400;
+		int totalRounds = losses + wictories;
+		if (totalRounds % 30 == 0) {
+			String winrate = Double.toString(calcWinRate(wictories, totalRounds));
+			winrateData.append(winrate + "," + totalRounds + "\n"); 
+		}
+		if (rounds > 3) {
+			rounds = rounds % 3;
 			epsilon -= decay_rate;
 			if (epsilon < minEpsilon) {
 				epsilon = minEpsilon;
@@ -317,24 +326,32 @@ public class RL extends AdvancedRobot {
 	public void onBattleEnded(BattleEndedEvent e) {
 		try {
 			saveState();
+			writeData(winrateData.toString(), "winrate.txt");
 		} catch (IOException e1) {
 			e1.printStackTrace(out);
 		}
 	}
 
-	// %%%%%%%%%%%%%%%%%%%% Ukladanie & Nacitavanie %%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%% Ukladanie & Nacitavanie %%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 	public void saveState() throws IOException {
 		LocalDateTime myDateObj = LocalDateTime.now();
 		DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss");
 		String formattedDate = myDateObj.format(myFormatObj);
-		double winRate = (wictories / (double) (losses + wictories)) * 100;
+		double winRate = calcWinRate(wictories, losses + wictories);
 
 		writeData(formatQTable(q_map), formattedDate + "_data.dat");
 		writeData(formatQTable(q_map_shooting), formattedDate + "_data_shooting.dat");
 		writeData("Wins: " + wictories + "\nLosses: " + losses + "\nWin Rate: " + winRate,
 				formattedDate + "_score.txt");
 	}
+	
+	private Double calcWinRate(int wins, int totalRounds) {
+		return (wins / (double) totalRounds) * 100;
+	}
+	
 
 	private String formatQTable(HashMap<String, ArrayList<Double>> map) {
 		StringBuilder sb = new StringBuilder();
