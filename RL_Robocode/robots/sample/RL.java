@@ -6,9 +6,14 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.stream.Collectors;
-import java.util.*;
 
 import robocode.AdvancedRobot;
 import robocode.BattleEndedEvent;
@@ -170,7 +175,7 @@ public class RL extends AdvancedRobot {
 
 		// vyber nahodne akce s ohledem na pravdepodobnost epsilon
 		if (epsilon > trueRandomNumber) {
-			action = randomNumber.nextInt(5);
+			action = randomNumber.nextInt(3);
 		}
 		// vyber akce z Q mapy
 		else if (q_map_shooting.containsKey(currentState_shooting)) {

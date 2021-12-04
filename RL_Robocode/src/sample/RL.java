@@ -6,9 +6,14 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.stream.Collectors;
-import java.util.*;
 
 import robocode.AdvancedRobot;
 import robocode.BattleEndedEvent;
@@ -32,7 +37,7 @@ public class RL extends AdvancedRobot {
 	private static int losses = 0;
 	private Random randomNumber = new Random();
 	private static Integer rounds = 0;
-	private static boolean useMap = false; 
+	private static boolean useMap = false;
 	private static double ENbear;
 
 	// Moving table
@@ -61,14 +66,15 @@ public class RL extends AdvancedRobot {
 			runMyTank();
 		}
 	}
-	
+
 	private void useSavedMap() {
 		epsilon = 0.01;
 		useMap = true;
 	}
-	
 
-	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Moving %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Hybanie %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	// Definice akci
 	public void runMyTank() {
 		int action = 0;
@@ -161,16 +167,18 @@ public class RL extends AdvancedRobot {
 
 	public double updateQ(double q, double maxQ) {
 		return (1 - alpha) * q + alpha * (reward + discount * maxQ);
-	}	
+	}
 
-	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Shooting %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Strielanie %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	public void tankShooting() {
 		int action = 0;
 		double trueRandomNumber = randomNumber.nextDouble();
 
 		// vyber nahodne akce s ohledem na pravdepodobnost epsilon
 		if (epsilon > trueRandomNumber) {
-			action = randomNumber.nextInt(5);
+			action = randomNumber.nextInt(3);
 		}
 		// vyber akce z Q mapy
 		else if (q_map_shooting.containsKey(currentState_shooting)) {
@@ -192,7 +200,7 @@ public class RL extends AdvancedRobot {
 
 		setTurnRadarRight(normalizeBearing(getHeading() - getRadarHeading() + ENbear));
 		execute();
-		
+
 		double normalizedBearing = normalizeBearing(getHeading() - getGunHeading() + ENbear);
 		switch (action) {
 		case 0:
@@ -256,11 +264,11 @@ public class RL extends AdvancedRobot {
 		last_q_values.set(lastAction_shooting, newQ);
 		q_map_shooting.put(lastState_shooting, last_q_values);
 	}
-	
+
 	public double updateQShooting(double q, double maxQ) {
 		return (1 - alpha) * q + alpha * (reward_shooting + discount * maxQ);
 	}
-	
+
 	private double normalizeBearing(double angle) {
 		while (angle > 180)
 			angle -= 360;
@@ -273,8 +281,10 @@ public class RL extends AdvancedRobot {
 		ENbear = e.getBearing();
 		tankShooting();
 	}
-	
-	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Ostatne %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Ostatne %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 	// Zvyseni poctu kol, postupny prechod na rozhodovani dle q mapy
 	public void onRoundEnded(RoundEndedEvent e) {
@@ -317,7 +327,9 @@ public class RL extends AdvancedRobot {
 		}
 	}
 
-	// %%%%%%%%%%%%%%%%%%%% Ukladanie & Nacitavanie %%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%% Ukladanie & Nacitavanie %%%%%%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 	public void saveState() throws IOException {
 		LocalDateTime myDateObj = LocalDateTime.now();
