@@ -1,3 +1,0 @@
-Wins: 6
-Losses: 12
-Win Rate: 50.0
