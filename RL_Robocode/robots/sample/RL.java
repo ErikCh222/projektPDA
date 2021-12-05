@@ -39,6 +39,7 @@ public class RL extends AdvancedRobot {
 	private Random randomNumber = new Random();
 	private static Integer rounds = 0;
 	private static boolean useMap = false;
+	private static boolean firstMapLoaded = false;
 	private static double ENbear;
 	private static StringBuilder winrateData = new StringBuilder();
 
@@ -60,6 +61,7 @@ public class RL extends AdvancedRobot {
 		useSavedMap(); // Comment out to learn from scratch
 		if (useMap) {
 			loadState(); // nacteni tabulky
+			useMap = false;
 		}
 		setAdjustGunForRobotTurn(true);
 		setAdjustRadarForGunTurn(true);
@@ -70,8 +72,11 @@ public class RL extends AdvancedRobot {
 	}
 
 	private void useSavedMap() {
-		epsilon = 0.01;
-		useMap = true;
+		if (!firstMapLoaded) {
+			epsilon = 0.01;
+			useMap = true;
+			firstMapLoaded = true;
+		}
 	}
 
 	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

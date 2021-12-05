@@ -39,6 +39,7 @@ public class RL extends AdvancedRobot {
 	private Random randomNumber = new Random();
 	private static Integer rounds = 0;
 	private static boolean useMap = false;
+	private static boolean firstMapLoaded = false;
 	private static double ENbear;
 	private static StringBuilder winrateData = new StringBuilder();
 
@@ -60,6 +61,7 @@ public class RL extends AdvancedRobot {
 		useSavedMap(); // Comment out to learn from scratch
 		if (useMap) {
 			loadState(); // nacteni tabulky
+			useMap = false;
 		}
 		setAdjustGunForRobotTurn(true);
 		setAdjustRadarForGunTurn(true);
@@ -70,8 +72,11 @@ public class RL extends AdvancedRobot {
 	}
 
 	private void useSavedMap() {
-		epsilon = 0.01;
-		useMap = true;
+		if (!firstMapLoaded) {
+			epsilon = 0.01;
+			useMap = true;
+			firstMapLoaded = true;
+		}
 	}
 
 	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -290,8 +295,8 @@ public class RL extends AdvancedRobot {
 		rounds++;
 		int totalRounds = losses + wictories;
 		if (totalRounds % 30 == 0) {
-			String winrate = Double.toString(calcWinRate(wictories, totalRounds));
-			winrateData.append(winrate + "," + totalRounds + "\n"); 
+			// Uloznie win rate a pocet kol do strignu pre grafy
+			winrateData.append(Double.toString(calcWinRate(wictories, totalRounds)) + "," + totalRounds + "\n");
 		}
 		if (rounds > 3) {
 			rounds = rounds % 3;
@@ -326,6 +331,7 @@ public class RL extends AdvancedRobot {
 	public void onBattleEnded(BattleEndedEvent e) {
 		try {
 			saveState();
+			// Ulozenie dat pre vytvaranie grafov
 			writeData(winrateData.toString(), "winrate.txt");
 		} catch (IOException e1) {
 			e1.printStackTrace(out);
@@ -347,11 +353,10 @@ public class RL extends AdvancedRobot {
 		writeData("Wins: " + wictories + "\nLosses: " + losses + "\nWin Rate: " + winRate,
 				formattedDate + "_score.txt");
 	}
-	
+
 	private Double calcWinRate(int wins, int totalRounds) {
 		return (wins / (double) totalRounds) * 100;
 	}
-	
 
 	private String formatQTable(HashMap<String, ArrayList<Double>> map) {
 		StringBuilder sb = new StringBuilder();

@@ -62,11 +62,11 @@ public class RobocodeRunner {
 		engine.addBattleListener(battleListener);
 
 		// Show the battles
-		engine.setVisible(true);
+		//engine.setVisible(true);
 
 		// Setup the battle specification
 
-		int numberOfRounds = 5;
+		int numberOfRounds = 750;
 		BattlefieldSpecification battlefield = new BattlefieldSpecification(600, 600); // 800x600
 		// RobotSpecification[] selectedRobots =
 		// engine.getLocalRepository("sample.Corners, sample.MujRobot");
